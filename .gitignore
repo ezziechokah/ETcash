@@ -10,3 +10,4 @@ backend/etcash.db
 electron/dist/
 dist/
 backend/.venv/
+.venv/
