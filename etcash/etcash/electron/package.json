@@ -1,0 +1,32 @@
+{
+  "name": "etcash",
+  "version": "1.0.0",
+  "description": "ETcash — Kenya-first Desktop Financial System",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build:win": "electron-builder --win",
+    "build:mac": "electron-builder --mac",
+    "build:linux": "electron-builder --linux"
+  },
+  "dependencies": {
+    "electron-store": "8.1.0",
+    "tree-kill": "1.2.2"
+  },
+  "devDependencies": {
+    "electron": "28.0.0",
+    "electron-builder": "24.9.1"
+  },
+  "build": {
+    "appId": "com.etcash.desktop",
+    "productName": "ETcash",
+    "directories": { "output": "dist" },
+    "extraResources": [
+      { "from": "../backend", "to": "backend", "filter": ["**/*"] },
+      { "from": "../frontend/dist", "to": "frontend", "filter": ["**/*"] }
+    ],
+    "win":   { "target": "nsis",     "icon": "resources/icon.ico" },
+    "mac":   { "target": "dmg",      "icon": "resources/icon.icns" },
+    "linux": { "target": "AppImage", "icon": "resources/icon.png" }
+  }
+}
