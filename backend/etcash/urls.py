@@ -14,4 +14,10 @@ urlpatterns = [
     path('api/payroll/', include('payroll.urls')),
     path('api/reports/', include('reports.urls')),
     path('api/tax/', include('reports.tax_urls')),
+    
+    # New integration apps
+    path('api/mpesa/', include('mpesa.urls')),
+    path('api/whatsapp/', include('whatsapp.urls')),
+    path('api/kra/', include('kra.urls')),
+    path('api/mobile/', include('mobile.urls')),
 ]

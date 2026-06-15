@@ -27,6 +27,10 @@ INSTALLED_APPS = [
     'entities',
     'payroll',
     'reports',
+    'whatsapp',
+    'mpesa',
+    'kra',
+    'mobile',
 ]
 
 MIDDLEWARE = [
