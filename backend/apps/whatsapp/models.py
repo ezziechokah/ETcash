@@ -6,21 +6,17 @@ class WhatsAppConfig(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid4, editable=False)
     company = models.OneToOneField('core.Company', on_delete=models.CASCADE, related_name='whatsapp_config')
     
-    # WhatsApp Business Account
     phone_number_id = models.CharField(max_length=100)
-    business_account_id = models.CharField(max_length=100)
+    business_account_id = models.CharField(max_length=100, blank=True)
     access_token = models.CharField(max_length=500)
     
-    # Webhook settings
-    webhook_verify_token = models.CharField(max_length=100)
+    webhook_verify_token = models.CharField(max_length=100, blank=True)
     webhook_url = models.URLField(blank=True)
     
-    # Templates
     invoice_template_name = models.CharField(max_length=100, default='invoice_payment')
     reminder_template_name = models.CharField(max_length=100, default='payment_reminder')
     receipt_template_name = models.CharField(max_length=100, default='payment_receipt')
     
-    # Features
     auto_send_invoice = models.BooleanField(default=False)
     auto_send_reminders = models.BooleanField(default=False)
     reminder_days_before_due = models.IntegerField(default=3)
@@ -49,11 +45,9 @@ class WhatsAppMessage(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid4, editable=False)
     company = models.ForeignKey('core.Company', on_delete=models.CASCADE, related_name='whatsapp_messages')
     
-    # Recipient/Sender
     phone_number = models.CharField(max_length=20, db_index=True)
     contact_name = models.CharField(max_length=255, blank=True)
     
-    # Message content
     message_type = models.CharField(max_length=50, choices=[
         ('TEXT', 'Text'),
         ('DOCUMENT', 'Document'),
@@ -63,23 +57,19 @@ class WhatsAppMessage(models.Model):
     content = models.TextField()
     media_url = models.URLField(blank=True)
     
-    # Direction and status
     direction = models.CharField(max_length=20, choices=DIRECTION_CHOICES)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING')
     
-    # WhatsApp IDs
     message_id = models.CharField(max_length=100, unique=True, db_index=True)
     conversation_id = models.CharField(max_length=100, blank=True)
     
-    # Linked records
-    linked_invoice = models.ForeignKey('sales.Invoice', on_delete=models.SET_NULL, null=True, blank=True)
-    linked_customer = models.ForeignKey('sales.Customer', on_delete=models.SET_NULL, null=True, blank=True)
+    # Store IDs as strings to avoid foreign key issues
+    linked_invoice_id = models.CharField(max_length=100, blank=True, db_index=True)
+    linked_customer_id = models.CharField(max_length=100, blank=True, db_index=True)
     
-    # Error handling
     error_code = models.IntegerField(null=True, blank=True)
     error_message = models.TextField(blank=True)
     
-    # Raw data
     raw_request = models.JSONField(default=dict, blank=True)
     raw_response = models.JSONField(default=dict, blank=True)
     
@@ -93,6 +83,7 @@ class WhatsAppMessage(models.Model):
             models.Index(fields=['phone_number']),
             models.Index(fields=['status']),
             models.Index(fields=['created_at']),
+            models.Index(fields=['linked_invoice_id']),
         ]
     
     def __str__(self):
@@ -111,16 +102,13 @@ class WhatsAppTemplate(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid4, editable=False)
     company = models.ForeignKey('core.Company', on_delete=models.CASCADE, related_name='whatsapp_templates')
     
-    # Template details
     name = models.CharField(max_length=100)
     category = models.CharField(max_length=50, choices=CATEGORY_CHOICES)
     language = models.CharField(max_length=10, default='en')
     content = models.TextField(help_text="Use {{variable_name}} for dynamic content")
     
-    # Variables accepted
     variables = models.JSONField(default=list, help_text="List of variable names used in template")
     
-    # WhatsApp template ID (once approved)
     whatsapp_template_id = models.CharField(max_length=100, blank=True)
     is_approved = models.BooleanField(default=False)
     

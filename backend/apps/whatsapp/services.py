@@ -1,8 +1,7 @@
-import requests
 import json
 from datetime import datetime
 from django.conf import settings
-from .models import WhatsAppMessage, WhatsAppConfig
+from .models import WhatsAppMessage, WhatsAppConfig, WhatsAppTemplate
 
 class WhatsAppService:
     """WhatsApp Business API Integration"""
@@ -18,60 +17,40 @@ class WhatsAppService:
         if not self.config:
             return {'success': False, 'error': 'WhatsApp not configured'}
         
-        # Format phone number
         phone = self._format_phone(phone_number)
         
-        # Prepare message
-        message_data = {
-            "messaging_product": "whatsapp",
-            "recipient_type": "individual",
-            "to": phone,
-            "type": "text",
-            "text": {"preview_url": False, "body": text}
-        }
-        
-        # For demo/sample, simulate sending
         if settings.DEBUG:
             import random
             import string
             
             message_id = f"whatsapp_{''.join(random.choices(string.digits, k=15))}"
             
-            message = WhatsAppMessage.objects.create(
-                company=self.company,
-                phone_number=phone,
-                contact_name=customer.name if customer else '',
-                message_type='TEXT',
-                content=text,
-                direction='OUTBOUND',
-                status='SENT',
-                message_id=message_id,
-                linked_invoice=invoice,
-                linked_customer=customer,
-                sent_at=datetime.now(),
-                delivered_at=datetime.now()
-            )
+            message_data = {
+                'company': self.company,
+                'phone_number': phone,
+                'message_type': 'TEXT',
+                'content': text,
+                'direction': 'OUTBOUND',
+                'status': 'SENT',
+                'message_id': message_id,
+                'sent_at': datetime.now(),
+                'delivered_at': datetime.now()
+            }
+            
+            if customer:
+                message_data['contact_name'] = customer.name if hasattr(customer, 'name') else ''
+                message_data['linked_customer_id'] = customer.id if hasattr(customer, 'id') else None
+            
+            if invoice:
+                message_data['linked_invoice_id'] = invoice.id if hasattr(invoice, 'id') else None
+            
+            message = WhatsAppMessage.objects.create(**message_data)
             
             return {
                 'success': True,
                 'message_id': message_id,
                 'status': 'sent'
             }
-        
-        # Production API call
-        """
-        headers = {
-            'Authorization': f'Bearer {self.config.access_token}',
-            'Content-Type': 'application/json'
-        }
-        
-        url = f"{self.api_url}/{self.config.phone_number_id}/messages"
-        response = requests.post(url, json=message_data, headers=headers)
-        
-        if response.status_code == 200:
-            data = response.json()
-            return {'success': True, 'message_id': data.get('messages', [{}])[0].get('id')}
-        """
         
         return {'success': False, 'error': 'WhatsApp service not available'}
     
@@ -81,8 +60,6 @@ class WhatsAppService:
         if not self.config:
             return {'success': False, 'error': 'WhatsApp not configured'}
         
-        # Get template
-        from .models import WhatsAppTemplate
         try:
             template = WhatsAppTemplate.objects.get(
                 company=self.company,
@@ -94,27 +71,6 @@ class WhatsAppService:
         
         phone = self._format_phone(phone_number)
         
-        # Prepare template message
-        message_data = {
-            "messaging_product": "whatsapp",
-            "to": phone,
-            "type": "template",
-            "template": {
-                "name": template.whatsapp_template_id or template_name,
-                "language": {"code": template.language},
-                "components": [
-                    {
-                        "type": "body",
-                        "parameters": [
-                            {"type": "text", "text": str(variables.get(var, ''))}
-                            for var in template.variables
-                        ]
-                    }
-                ]
-            }
-        }
-        
-        # For demo, simulate
         if settings.DEBUG:
             import random
             import string
@@ -122,19 +78,25 @@ class WhatsAppService:
             rendered_content = template.render(variables)
             message_id = f"whatsapp_template_{''.join(random.choices(string.digits, k=15))}"
             
-            message = WhatsAppMessage.objects.create(
-                company=self.company,
-                phone_number=phone,
-                contact_name=customer.name if customer else '',
-                message_type='TEMPLATE',
-                content=rendered_content,
-                direction='OUTBOUND',
-                status='SENT',
-                message_id=message_id,
-                linked_invoice=invoice,
-                linked_customer=customer,
-                sent_at=datetime.now()
-            )
+            message_data = {
+                'company': self.company,
+                'phone_number': phone,
+                'message_type': 'TEMPLATE',
+                'content': rendered_content,
+                'direction': 'OUTBOUND',
+                'status': 'SENT',
+                'message_id': message_id,
+                'sent_at': datetime.now()
+            }
+            
+            if customer:
+                message_data['contact_name'] = customer.name if hasattr(customer, 'name') else ''
+                message_data['linked_customer_id'] = customer.id if hasattr(customer, 'id') else None
+            
+            if invoice:
+                message_data['linked_invoice_id'] = invoice.id if hasattr(invoice, 'id') else None
+            
+            message = WhatsAppMessage.objects.create(**message_data)
             
             return {
                 'success': True,
@@ -147,22 +109,32 @@ class WhatsAppService:
     def send_invoice(self, invoice):
         """Send invoice to customer via WhatsApp"""
         
-        customer = invoice.customer
-        phone = customer.phone
+        # Get customer from invoice
+        customer = None
+        if hasattr(invoice, 'customer'):
+            customer = invoice.customer
         
+        if not customer:
+            return {'success': False, 'error': 'Invoice has no customer'}
+        
+        phone = getattr(customer, 'phone', None)
         if not phone:
             return {'success': False, 'error': 'Customer has no phone number'}
         
-        # Format invoice data
+        customer_name = getattr(customer, 'name', 'Customer')
+        invoice_number = getattr(invoice, 'invoice_number', 'N/A')
+        total_amount = float(getattr(invoice, 'total_amount', 0))
+        due_date = getattr(invoice, 'due_date', datetime.now().date())
+        invoice_id = getattr(invoice, 'id', '')
+        
         variables = {
-            'customer_name': customer.name,
-            'invoice_number': invoice.invoice_number,
-            'amount': f"KES {invoice.total_amount:,.2f}",
-            'due_date': invoice.due_date.strftime('%d/%m/%Y'),
-            'link': f"https://pay.etcash.com/{invoice.id}"  # Payment link
+            'customer_name': customer_name,
+            'invoice_number': invoice_number,
+            'amount': f"KES {total_amount:,.2f}",
+            'due_date': due_date.strftime('%d/%m/%Y'),
+            'link': f"https://pay.etcash.com/{invoice_id}"
         }
         
-        # Send template message
         result = self.send_template_message(
             phone_number=phone,
             template_name='invoice_payment',
@@ -171,37 +143,56 @@ class WhatsAppService:
             customer=customer
         )
         
-        # Auto-send STK push if configured
+        # Auto-send STK push if configured (check for mpesa_config attribute)
         if result.get('success') and hasattr(self.company, 'mpesa_config'):
-            if self.company.mpesa_config.auto_send_stk:
-                from apps.mpesa.services import MpesaService
-                mpesa = MpesaService(self.company)
-                mpesa.send_stk_push(
-                    phone_number=phone,
-                    amount=invoice.balance_due,
-                    account_reference=invoice.invoice_number,
-                    invoice=invoice
-                )
+            mpesa_config = self.company.mpesa_config
+            if hasattr(mpesa_config, 'auto_send_stk') and mpesa_config.auto_send_stk:
+                try:
+                    # Try to import MpesaService dynamically to avoid circular imports
+                    from importlib import import_module
+                    MpesaService = getattr(import_module('mpesa.services'), 'MpesaService', None)
+                    if MpesaService:
+                        mpesa = MpesaService(self.company)
+                        balance_due = float(getattr(invoice, 'balance_due', total_amount))
+                        mpesa.send_stk_push(
+                            phone_number=phone,
+                            amount=balance_due,
+                            account_reference=invoice_number,
+                            invoice=invoice
+                        )
+                except Exception as e:
+                    print(f"Auto STK push failed: {e}")
         
         return result
     
     def send_payment_reminder(self, invoice):
         """Send payment reminder for overdue invoice"""
         
-        customer = invoice.customer
-        phone = customer.phone
+        customer = None
+        if hasattr(invoice, 'customer'):
+            customer = invoice.customer
         
+        if not customer:
+            return {'success': False, 'error': 'Invoice has no customer'}
+        
+        phone = getattr(customer, 'phone', None)
         if not phone:
             return {'success': False, 'error': 'Customer has no phone number'}
         
-        days_overdue = (datetime.now().date() - invoice.due_date).days
+        due_date = getattr(invoice, 'due_date', datetime.now().date())
+        days_overdue = (datetime.now().date() - due_date).days
+        
+        customer_name = getattr(customer, 'name', 'Customer')
+        invoice_number = getattr(invoice, 'invoice_number', 'N/A')
+        balance_due = float(getattr(invoice, 'balance_due', 0))
+        invoice_id = getattr(invoice, 'id', '')
         
         variables = {
-            'customer_name': customer.name,
-            'invoice_number': invoice.invoice_number,
-            'amount_due': f"KES {invoice.balance_due:,.2f}",
+            'customer_name': customer_name,
+            'invoice_number': invoice_number,
+            'amount_due': f"KES {balance_due:,.2f}",
             'days_overdue': str(days_overdue),
-            'link': f"https://pay.etcash.com/{invoice.id}"
+            'link': f"https://pay.etcash.com/{invoice_id}"
         }
         
         return self.send_template_message(
@@ -215,20 +206,42 @@ class WhatsAppService:
     def send_payment_receipt(self, payment):
         """Send payment receipt via WhatsApp"""
         
-        invoice = payment.invoice
-        customer = invoice.customer
+        invoice = None
+        if hasattr(payment, 'invoice'):
+            invoice = payment.invoice
+        
+        if not invoice:
+            return {'success': False, 'error': 'Payment has no linked invoice'}
+        
+        customer = None
+        if hasattr(invoice, 'customer'):
+            customer = invoice.customer
+        
+        if not customer:
+            return {'success': False, 'error': 'Invoice has no customer'}
+        
+        phone = getattr(customer, 'phone', None)
+        if not phone:
+            return {'success': False, 'error': 'Customer has no phone number'}
+        
+        customer_name = getattr(customer, 'name', 'Customer')
+        invoice_number = getattr(invoice, 'invoice_number', 'N/A')
+        payment_amount = float(getattr(payment, 'amount', 0))
+        balance_due = float(getattr(invoice, 'balance_due', 0))
+        payment_date = getattr(payment, 'payment_date', datetime.now().date())
+        reference_number = getattr(payment, 'reference_number', '')
         
         variables = {
-            'customer_name': customer.name,
-            'invoice_number': invoice.invoice_number,
-            'amount_paid': f"KES {payment.amount:,.2f}",
-            'balance': f"KES {invoice.balance_due:,.2f}",
-            'payment_date': payment.payment_date.strftime('%d/%m/%Y'),
-            'mpesa_code': payment.reference_number
+            'customer_name': customer_name,
+            'invoice_number': invoice_number,
+            'amount_paid': f"KES {payment_amount:,.2f}",
+            'balance': f"KES {balance_due:,.2f}",
+            'payment_date': payment_date.strftime('%d/%m/%Y'),
+            'mpesa_code': reference_number
         }
         
         return self.send_template_message(
-            phone_number=customer.phone,
+            phone_number=phone,
             template_name='payment_receipt',
             variables=variables,
             invoice=invoice,
@@ -238,8 +251,8 @@ class WhatsAppService:
     def send_bulk_reminders(self):
         """Send payment reminders to all overdue invoices"""
         
-        from apps.sales.models import Invoice
         from datetime import date
+        from invoicing.models import Invoice
         
         overdue_invoices = Invoice.objects.filter(
             company=self.company,
@@ -249,28 +262,25 @@ class WhatsAppService:
         
         results = []
         for invoice in overdue_invoices:
-            if invoice.customer.phone:
-                result = self.send_payment_reminder(invoice)
-                results.append({
-                    'invoice': invoice.invoice_number,
-                    'success': result.get('success', False)
-                })
+            if hasattr(invoice, 'customer') and invoice.customer:
+                phone = getattr(invoice.customer, 'phone', None)
+                if phone:
+                    result = self.send_payment_reminder(invoice)
+                    results.append({
+                        'invoice': getattr(invoice, 'invoice_number', 'N/A'),
+                        'success': result.get('success', False)
+                    })
         
         return results
     
     def _format_phone(self, phone_number):
         """Format phone number for WhatsApp API"""
         phone = phone_number.strip()
-        
-        # Remove any non-digit characters
         phone = ''.join(filter(str.isdigit, phone))
         
-        # Ensure it starts with 254
         if phone.startswith('0'):
             phone = '254' + phone[1:]
-        elif phone.startswith('254'):
-            pass
-        else:
+        elif not phone.startswith('254'):
             phone = '254' + phone
         
         return phone

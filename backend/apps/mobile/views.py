@@ -11,15 +11,21 @@ class MobileDashboardViewSet(viewsets.ViewSet):
     permission_classes = [IsAuthenticated]
     
     def get_company(self, request):
-        return request.user.profile.company
+        # Get company from user profile
+        if hasattr(request.user, 'profile') and request.user.profile:
+            return request.user.profile.company
+        # Fallback
+        from core.models import Company
+        return Company.objects.first()
     
     @action(detail=False, methods=['get'])
     def quick_dashboard(self, request):
         """Mobile-friendly quick dashboard with minimal data"""
         company = self.get_company(request)
         
-        from apps.sales.models import Invoice
-        from apps.banking.models import BankAccount
+        # Use correct app names: invoicing instead of sales
+        from invoicing.models import Invoice
+        from core.models import ChartOfAccounts
         
         # Today's stats
         today = timezone.now().date()
@@ -29,15 +35,13 @@ class MobileDashboardViewSet(viewsets.ViewSet):
             issue_date=today
         )
         
-        cash_balance = BankAccount.objects.filter(
+        # Get cash balance from chart of accounts
+        cash_accounts = ChartOfAccounts.objects.filter(
             company=company,
-            account_type='CASH'
-        ).aggregate(total=Sum('balance'))['total'] or 0
+            account_type='ASSET'
+        )
         
-        bank_balance = BankAccount.objects.filter(
-            company=company,
-            account_type='BANK'
-        ).aggregate(total=Sum('balance'))['total'] or 0
+        cash_balance = cash_accounts.aggregate(total=Sum('current_balance'))['total'] or 0
         
         # Overdue invoices count
         overdue_count = Invoice.objects.filter(
@@ -57,8 +61,7 @@ class MobileDashboardViewSet(viewsets.ViewSet):
         return Response({
             'cash_position': {
                 'cash': float(cash_balance),
-                'bank': float(bank_balance),
-                'total': float(cash_balance + bank_balance)
+                'total': float(cash_balance)
             },
             'today': {
                 'invoices_count': today_invoices.count(),
@@ -74,8 +77,8 @@ class MobileDashboardViewSet(viewsets.ViewSet):
         """Mobile-optimized expense recording with photo capture"""
         company = self.get_company(request)
         
-        # Simplified expense creation for mobile
-        from apps.purchases.models import Expense
+        # Use expenses app
+        from expenses.models import Expense
         
         expense = Expense.objects.create(
             company=company,
@@ -102,8 +105,9 @@ class MobileDashboardViewSet(viewsets.ViewSet):
         """Get data for offline mode on mobile"""
         company = self.get_company(request)
         
-        from apps.sales.models import Customer, Invoice
-        from apps.inventory.models import Product
+        # Use correct app names
+        from invoicing.models import Customer, Invoice
+        from inventory.models import Product
         
         # Get only essential data for offline use
         customers = Customer.objects.filter(company=company, is_active=True).values('id', 'name', 'phone', 'email')
@@ -114,7 +118,7 @@ class MobileDashboardViewSet(viewsets.ViewSet):
         recent_invoices = Invoice.objects.filter(
             company=company,
             issue_date__gte=thirty_days_ago
-        ).values('id', 'invoice_number', 'customer_name', 'total_amount', 'status', 'due_date')
+        ).values('id', 'invoice_number', 'customer__name', 'total_amount', 'status', 'due_date')
         
         return Response({
             'customers': list(customers),
@@ -138,7 +142,7 @@ class MobileDashboardViewSet(viewsets.ViewSet):
             try:
                 if entry.get('type') == 'invoice':
                     # Create invoice from offline data
-                    from apps.sales.models import Invoice, Customer
+                    from invoicing.models import Invoice, Customer
                     
                     customer, _ = Customer.objects.get_or_create(
                         company=company,
@@ -158,7 +162,7 @@ class MobileDashboardViewSet(viewsets.ViewSet):
                     synced_count += 1
                     
                 elif entry.get('type') == 'expense':
-                    from apps.purchases.models import Expense
+                    from expenses.models import Expense
                     Expense.objects.create(
                         company=company,
                         category=entry.get('category'),
@@ -176,4 +180,26 @@ class MobileDashboardViewSet(viewsets.ViewSet):
             'success': True,
             'synced_count': synced_count,
             'errors': errors
+        })
+    
+    @action(detail=False, methods=['get'])
+    def customers_list(self, request):
+        """Get customers for mobile app"""
+        company = self.get_company(request)
+        from invoicing.models import Customer
+        
+        customers = Customer.objects.filter(company=company, is_active=True).values('id', 'name', 'phone', 'email')
+        return Response({
+            'customers': list(customers)
+        })
+    
+    @action(detail=False, methods=['get'])
+    def products_list(self, request):
+        """Get products for mobile app"""
+        company = self.get_company(request)
+        from inventory.models import Product
+        
+        products = Product.objects.filter(company=company, is_active=True).values('id', 'sku', 'name', 'sales_price', 'current_quantity')
+        return Response({
+            'products': list(products)
         })

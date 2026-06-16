@@ -65,10 +65,23 @@ class KRAPinValidation(models.Model):
         return f"{self.pin_validated} - {'Valid' if self.is_valid else 'Invalid'}"
 
 class KRAVATReturn(models.Model):
-    """KRA VAT Return submission record"""
+    """KRA VAT Return submission record - No foreign key to tax_kenya"""
     id = models.UUIDField(primary_key=True, default=uuid4, editable=False)
     company = models.ForeignKey('core.Company', on_delete=models.CASCADE, related_name='kra_vat_returns')
-    vat_return = models.ForeignKey('tax_kenya.VATReturn', on_delete=models.CASCADE)
+    
+    # Period details (stored directly, not as foreign key)
+    period_start = models.DateField()
+    period_end = models.DateField()
+    
+    # VAT calculation details
+    standard_rated_sales = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    zero_rated_sales = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    exempt_sales = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    standard_rated_vat = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    
+    purchases_taxable = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    purchases_vat = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    imports_vat = models.DecimalField(max_digits=15, decimal_places=2, default=0)
     
     # Submission details
     submission_date = models.DateTimeField(auto_now_add=True)
@@ -81,9 +94,9 @@ class KRAVATReturn(models.Model):
     ], default='PENDING')
     
     # Tax amounts submitted
-    sales_vat_declared = models.DecimalField(max_digits=15, decimal_places=2)
-    purchases_vat_declared = models.DecimalField(max_digits=15, decimal_places=2)
-    net_vat_declared = models.DecimalField(max_digits=15, decimal_places=2)
+    sales_vat_declared = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    purchases_vat_declared = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    net_vat_declared = models.DecimalField(max_digits=15, decimal_places=2, default=0)
     
     # KRA response
     kra_response_code = models.CharField(max_length=20, blank=True)
@@ -94,34 +107,53 @@ class KRAVATReturn(models.Model):
     payment_reference = models.CharField(max_length=100, blank=True)
     payment_date = models.DateField(null=True, blank=True)
     
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
     def __str__(self):
-        return f"VAT Return {self.submission_date} - {self.kra_status}"
+        return f"VAT Return {self.period_start} to {self.period_end} - {self.kra_status}"
+    
+    def calculate_totals(self):
+        """Calculate VAT totals from the sales and purchases"""
+        self.standard_rated_vat = self.standard_rated_sales * Decimal('0.16')
+        self.purchases_vat = self.purchases_taxable * Decimal('0.16')
+        self.sales_vat_declared = self.standard_rated_vat
+        self.purchases_vat_declared = self.purchases_vat
+        self.net_vat_declared = self.sales_vat_declared - self.purchases_vat_declared
+        if self.net_vat_declared < 0:
+            self.net_vat_declared = 0
+        self.save()
 
 class KRAWithholdingTaxReturn(models.Model):
     """Withholding Tax return submission to KRA"""
     id = models.UUIDField(primary_key=True, default=uuid4, editable=False)
-    company = models.ForeignKey('core.Company', on_delete=models.CASCADE)
+    company = models.ForeignKey('core.Company', on_delete=models.CASCADE, related_name='kra_wht_returns')
     
     # Period
     period_month = models.IntegerField()
     period_year = models.IntegerField()
     
     # Summary
-    total_gross_payments = models.DecimalField(max_digits=15, decimal_places=2)
-    total_tax_withheld = models.DecimalField(max_digits=15, decimal_places=2)
+    total_gross_payments = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    total_tax_withheld = models.DecimalField(max_digits=15, decimal_places=2, default=0)
     
     # Submission
     submission_date = models.DateTimeField(auto_now_add=True)
     acknowledgement_receipt = models.CharField(max_length=100, blank=True)
-    kra_status = models.CharField(max_length=50, default='PENDING')
+    kra_status = models.CharField(max_length=50, default='PENDING', choices=[
+        ('PENDING', 'Pending'),
+        ('ACCEPTED', 'Accepted by KRA'),
+        ('REJECTED', 'Rejected'),
+    ])
     
     # Detailed breakdown
     payees = models.JSONField(default=list)  # List of payee details
     
     created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
     
     def __str__(self):
-        return f"WHT Return {self.period_month}/{self.period_year}"
+        return f"WHT Return {self.period_month}/{self.period_year} - {self.kra_status}"
 
 class KRAeTIMSInvoice(models.Model):
     """eTIMS invoice for KRA electronic tax invoicing"""
@@ -133,13 +165,23 @@ class KRAeTIMSInvoice(models.Model):
     ]
     
     id = models.UUIDField(primary_key=True, default=uuid4, editable=False)
-    company = models.ForeignKey('core.Company', on_delete=models.CASCADE)
-    invoice = models.ForeignKey('sales.Invoice', on_delete=models.CASCADE, related_name='etims_records')
+    company = models.ForeignKey('core.Company', on_delete=models.CASCADE, related_name='kra_etims_invoices')
+    
+    # Store invoice reference as string to avoid foreign key issues
+    invoice_number = models.CharField(max_length=50, db_index=True)
+    invoice_id = models.CharField(max_length=100, blank=True, db_index=True)
     
     # eTIMS specific fields
     etims_invoice_number = models.CharField(max_length=100, unique=True)
     qr_code = models.TextField(blank=True)  # Base64 or URL of QR code
     security_code = models.CharField(max_length=50, blank=True)
+    
+    # Invoice details (denormalized for eTIMS)
+    customer_name = models.CharField(max_length=255, blank=True)
+    customer_pin = models.CharField(max_length=50, blank=True)
+    total_amount = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    vat_amount = models.DecimalField(max_digits=15, decimal_places=2, default=0)
+    invoice_date = models.DateField(null=True, blank=True)
     
     # KRA validation
     kra_request_id = models.CharField(max_length=100, blank=True)
