@@ -25,16 +25,8 @@ start_backend() {
   echo "==> Starting backend server on http://127.0.0.1:8765"
   cd "$BACKEND_DIR"
   python manage.py migrate
-  echo "==> Ensuring admin user exists"
-  python manage.py shell <<'PY'
-from django.contrib.auth import get_user_model
-User = get_user_model()
-if not User.objects.filter(username='admin').exists():
-    User.objects.create_superuser('admin', 'admin@test.co.ke', 'Admin1234!')
-    print('Created admin user admin / Admin1234!')
-else:
-    print('Admin user already exists')
-PY
+  echo "==> Seeding sample environment"
+  python manage.py seed_sample
   python manage.py runserver 127.0.0.1:8765 &
   BACKEND_PID=$!
   echo "Backend running (pid=$BACKEND_PID)"

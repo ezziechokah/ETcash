@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'react-hot-toast';
 import App from './App.jsx';
+import { useThemeInit } from './hooks/useTheme.js';
 import './index.css';
 
 const queryClient = new QueryClient({
@@ -11,18 +12,31 @@ const queryClient = new QueryClient({
   }
 });
 
-ReactDOM.createRoot(document.getElementById('root')).render(
-  <React.StrictMode>
-    <QueryClientProvider client={queryClient}>
+function Root() {
+  useThemeInit();
+  return (
+    <>
       <App />
       <Toaster
         position="top-right"
         toastOptions={{
-          style: { background: '#1e293b', color: '#f1f5f9', border: '1px solid #334155' },
-          success: { iconTheme: { primary: '#22c55e', secondary: '#1e293b' } },
-          error:   { iconTheme: { primary: '#ef4444', secondary: '#1e293b' } }
+          style: {
+            background: 'var(--toast-bg)',
+            color: 'var(--toast-fg)',
+            border: '1px solid var(--toast-border)',
+          },
+          success: { iconTheme: { primary: '#22c55e', secondary: 'var(--toast-bg)' } },
+          error:   { iconTheme: { primary: '#ef4444', secondary: 'var(--toast-bg)' } },
         }}
       />
+    </>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(
+  <React.StrictMode>
+    <QueryClientProvider client={queryClient}>
+      <Root />
     </QueryClientProvider>
   </React.StrictMode>
 );

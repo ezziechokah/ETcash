@@ -6,6 +6,7 @@ import { api } from '../../api/client.js';
 import { useAuthStore } from '../../store/authStore.js';
 import { MONTHS } from '../../utils/constants.js';
 import PageHeader from '../../components/PageHeader.jsx';
+import ThemeToggle from '../../components/ThemeToggle.jsx';
 
 const MODE_LABEL = { freelancer: 'Freelancer', sme: 'SME', multi_entity: 'Multi-Entity' };
 
@@ -34,6 +35,13 @@ export default function Settings() {
   return (
     <div className="space-y-6 max-w-2xl">
       <PageHeader title="Settings" subtitle="Company profile and preferences"/>
+
+      <div className="card space-y-4">
+        <h3 className="text-base font-semibold text-fg">Appearance</h3>
+        <p className="text-sm text-fg-muted">Choose light, dark, or match your system preference.</p>
+        <ThemeToggle />
+      </div>
+
       <form onSubmit={handleSubmit(d => save.mutate(d))} className="card space-y-4">
         <div>
           <label className="label">Company name</label>
@@ -57,7 +65,7 @@ export default function Settings() {
         </div>
         <div>
           <label className="label">Installation mode</label>
-          <p className="text-sm text-slate-400 mt-1">{MODE_LABEL[company?.mode] || data?.mode} — set at install time</p>
+          <p className="text-sm text-fg-muted mt-1">{MODE_LABEL[company?.mode] || data?.mode} — set at install time</p>
         </div>
         <button type="submit" className="btn-primary" disabled={save.isPending}>{save.isPending ? 'Saving…' : 'Save changes'}</button>
       </form>

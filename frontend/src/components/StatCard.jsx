@@ -15,9 +15,9 @@ export default function StatCard({ title, value, subtitle, trend, trendLabel, ic
     <div className="card">
       <div className="flex items-start justify-between">
         <div className="flex-1 min-w-0">
-          <p className="text-sm text-slate-400">{title}</p>
-          <p className="text-2xl font-bold text-white mt-1 truncate">{value}</p>
-          {subtitle && <p className="text-xs text-slate-500 mt-1">{subtitle}</p>}
+          <p className="text-sm text-fg-muted">{title}</p>
+          <p className="text-2xl font-bold text-fg mt-1 truncate">{value}</p>
+          {subtitle && <p className="text-xs text-fg-faint mt-1">{subtitle}</p>}
           {trend !== undefined && (
             <div className={clsx('flex items-center gap-1 mt-2 text-xs font-medium', trend>=0?'text-green-400':'text-red-400')}>
               {trend>=0 ? <ArrowUpIcon className="w-3 h-3"/> : <ArrowDownIcon className="w-3 h-3"/>}

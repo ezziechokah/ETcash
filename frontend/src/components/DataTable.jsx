@@ -40,7 +40,7 @@ export default function DataTable({ data=[], columns, isLoading=false, pageSize=
               <tr key={hg.id}>
                 {hg.headers.map(h => (
                   <th key={h.id}
-                    className={clsx('px-4 py-3 text-left table-header', h.column.getCanSort() && 'cursor-pointer select-none hover:text-slate-200')}
+                    className={clsx('px-4 py-3 text-left table-header', h.column.getCanSort() && 'cursor-pointer select-none hover:text-fg-secondary')}
                     onClick={h.column.getToggleSortingHandler()}>
                     <div className="flex items-center gap-1">
                       {flexRender(h.column.columnDef.header, h.getContext())}
@@ -54,12 +54,12 @@ export default function DataTable({ data=[], columns, isLoading=false, pageSize=
           </thead>
           <tbody>
             {table.getRowModel().rows.length === 0
-              ? <tr><td colSpan={columns.length} className="text-center py-16 text-slate-500">{emptyMessage}</td></tr>
+              ? <tr><td colSpan={columns.length} className="text-center py-16 text-fg-faint">{emptyMessage}</td></tr>
               : table.getRowModel().rows.map(row => (
                 <tr key={row.id} className={clsx('table-row', onRowClick && 'cursor-pointer')}
                   onClick={() => onRowClick?.(row.original)}>
                   {row.getVisibleCells().map(cell => (
-                    <td key={cell.id} className="px-4 py-3 text-sm text-slate-300">
+                    <td key={cell.id} className="px-4 py-3 text-sm text-fg-secondary">
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </td>
                   ))}
@@ -69,7 +69,7 @@ export default function DataTable({ data=[], columns, isLoading=false, pageSize=
           </tbody>
         </table>
       </div>
-      <div className="flex items-center justify-between mt-3 text-sm text-slate-400">
+      <div className="flex items-center justify-between mt-3 text-sm text-fg-muted">
         <span>{table.getFilteredRowModel().rows.length} record{table.getFilteredRowModel().rows.length!==1?'s':''}</span>
         <div className="flex items-center gap-2">
           <button onClick={() => table.previousPage()} disabled={!table.getCanPreviousPage()} className="p-1 rounded hover:bg-surface-card disabled:opacity-30">

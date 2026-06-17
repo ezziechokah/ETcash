@@ -20,17 +20,9 @@ Write-Host "==> Running migrations" -ForegroundColor Green
 Push-Location $BACKEND_DIR
 python manage.py migrate
 
-# Ensure admin user exists
-Write-Host "==> Ensuring admin user exists" -ForegroundColor Green
-python -c @"
-from django.contrib.auth import get_user_model
-User = get_user_model()
-if not User.objects.filter(username='admin').exists():
-    User.objects.create_superuser('admin', 'admin@test.co.ke', 'Admin1234!')
-    print('Created admin user admin / Admin1234!')
-else:
-    print('Admin user already exists')
-"@
+# Seed sample company, users, and demo data
+Write-Host "==> Seeding sample environment" -ForegroundColor Green
+python manage.py seed_sample
 
 # Start backend server in background
 Write-Host "==> Starting backend server on http://127.0.0.1:8765" -ForegroundColor Green

@@ -10,8 +10,8 @@ function Splash() {
         <span className="text-white font-bold text-3xl">ET</span>
       </div>
       <div className="text-center">
-        <h1 className="text-3xl font-bold text-white">ETcash</h1>
-        <p className="text-slate-400 mt-1 text-sm">Kenya-first Financial System</p>
+        <h1 className="text-3xl font-bold text-fg">ETcash</h1>
+        <p className="text-fg-muted mt-1 text-sm">Kenya-first Financial System</p>
       </div>
       <div className="flex gap-1.5">
         {[0,1,2].map(i => (

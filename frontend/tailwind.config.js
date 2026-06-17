@@ -1,4 +1,5 @@
 export default {
+  darkMode: 'class',
   content: ['./index.html', './src/**/*.{js,jsx}'],
   theme: {
     extend: {
@@ -8,7 +9,18 @@ export default {
           400:'#60a5fa', 500:'#3b82f6', 600:'#2563eb', 700:'#1d4ed8',
           800:'#1e40af', 900:'#1e3a8a', 950:'#172554'
         },
-        surface: { DEFAULT:'#0f172a', card:'#1e293b', border:'#334155', muted:'#475569' }
+        surface: {
+          DEFAULT: 'var(--color-surface)',
+          card: 'var(--color-surface-card)',
+          border: 'var(--color-surface-border)',
+          muted: 'var(--color-surface-muted)',
+        },
+        fg: {
+          DEFAULT: 'var(--color-fg)',
+          secondary: 'var(--color-fg-secondary)',
+          muted: 'var(--color-fg-muted)',
+          faint: 'var(--color-fg-faint)',
+        },
       },
       fontFamily: {
         sans: ['Inter','system-ui','sans-serif'],

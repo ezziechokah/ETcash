@@ -20,4 +20,5 @@ urlpatterns = [
     path('api/whatsapp/', include('whatsapp.urls')),
     path('api/kra/', include('kra.urls')),
     path('api/mobile/', include('mobile.urls')),
+    path('api/', include('sample_servers.urls')),
 ]

@@ -47,13 +47,13 @@ export default function Setup() {
           <div className="w-16 h-16 rounded-2xl bg-brand-600 flex items-center justify-center mx-auto mb-4 shadow-2xl">
             <span className="text-white font-bold text-2xl">ET</span>
           </div>
-          <h1 className="text-3xl font-bold text-white">Set up ETcash</h1>
-          <p className="text-slate-400 mt-1">Kenya-first Financial System — one-time setup</p>
+          <h1 className="text-3xl font-bold text-fg">Set up ETcash</h1>
+          <p className="text-fg-muted mt-1">Kenya-first Financial System — one-time setup</p>
         </div>
         <div className="card">
           <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
             <div>
-              <h3 className="text-base font-semibold text-white mb-4 flex items-center gap-2">
+              <h3 className="text-base font-semibold text-fg mb-4 flex items-center gap-2">
                 <span className="w-6 h-6 rounded-full bg-brand-600 text-white text-xs flex items-center justify-center font-bold">1</span>
                 Admin Account
               </h3>
@@ -83,7 +83,7 @@ export default function Setup() {
               </div>
             </div>
             <div>
-              <h3 className="text-base font-semibold text-white mb-4 flex items-center gap-2">
+              <h3 className="text-base font-semibold text-fg mb-4 flex items-center gap-2">
                 <span className="w-6 h-6 rounded-full bg-brand-600 text-white text-xs flex items-center justify-center font-bold">2</span>
                 Company Details
               </h3>
@@ -112,7 +112,7 @@ export default function Setup() {
               </div>
             </div>
             <div>
-              <h3 className="text-base font-semibold text-white mb-4 flex items-center gap-2">
+              <h3 className="text-base font-semibold text-fg mb-4 flex items-center gap-2">
                 <span className="w-6 h-6 rounded-full bg-brand-600 text-white text-xs flex items-center justify-center font-bold">3</span>
                 Installation Mode
               </h3>
@@ -121,11 +121,11 @@ export default function Setup() {
                   <button type="button" key={m.value} onClick={() => setMode(m.value)}
                     className={`relative p-4 rounded-xl border-2 text-left transition-all ${mode===m.value?'border-brand-500 bg-brand-600/10':'border-surface-border hover:border-surface-muted'}`}>
                     {m.recommended && <span className="absolute -top-2 left-3 text-xs bg-brand-600 text-white px-2 py-0.5 rounded-full font-medium">Recommended</span>}
-                    <div className="font-semibold text-white text-sm mb-1">{m.label}</div>
-                    <div className="text-xs text-slate-400 mb-3">{m.desc}</div>
+                    <div className="font-semibold text-fg text-sm mb-1">{m.label}</div>
+                    <div className="text-xs text-fg-muted mb-3">{m.desc}</div>
                     <ul className="space-y-1">
                       {m.features.map(f => (
-                        <li key={f} className="flex items-center gap-1.5 text-xs text-slate-300">
+                        <li key={f} className="flex items-center gap-1.5 text-xs text-fg-secondary">
                           <CheckCircleIcon className="w-3 h-3 text-brand-400 flex-shrink-0"/>{f}
                         </li>
                       ))}

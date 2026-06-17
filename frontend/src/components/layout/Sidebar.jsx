@@ -69,7 +69,7 @@ function Group({ group, collapsed }) {
         <NavLink key={item.to+item.label} to={item.to} title={item.label}
           className={({isActive}) => clsx(
             'flex items-center justify-center w-10 h-10 mx-auto rounded-lg transition-colors',
-            isActive ? 'bg-brand-600 text-white' : 'text-slate-400 hover:bg-surface-card hover:text-slate-200'
+            isActive ? 'bg-brand-600 text-white' : 'text-fg-muted hover:bg-surface-card hover:text-fg-secondary'
           )}>
           <item.icon className="w-5 h-5"/>
         </NavLink>
@@ -81,7 +81,7 @@ function Group({ group, collapsed }) {
     <div className="mb-2">
       <button onClick={() => setOpen(o => !o)}
         className={clsx('flex items-center justify-between w-full px-3 py-1.5 text-xs font-semibold uppercase tracking-wider rounded-md transition-colors',
-          active ? 'text-brand-400' : 'text-slate-500 hover:text-slate-300')}>
+          active ? 'text-brand-400' : 'text-fg-faint hover:text-fg-muted')}>
         <span>{group.label}</span>
         {open ? <ChevronDownIcon className="w-3 h-3"/> : <ChevronRightIcon className="w-3 h-3"/>}
       </button>
@@ -91,7 +91,7 @@ function Group({ group, collapsed }) {
             <NavLink key={item.to+item.label} to={item.to}
               className={({isActive}) => clsx(
                 'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors',
-                isActive ? 'bg-brand-600/20 text-brand-400 font-medium' : 'text-slate-400 hover:bg-surface-card hover:text-slate-200'
+                isActive ? 'bg-brand-600/20 text-brand-400 font-medium' : 'text-fg-muted hover:bg-surface-card hover:text-fg-secondary'
               )}>
               <item.icon className="w-4 h-4 flex-shrink-0"/>
               <span>{item.label}</span>
@@ -122,11 +122,11 @@ export default function Sidebar() {
         </div>
         {open && (
           <div className="flex-1 min-w-0">
-            <div className="font-bold text-white text-sm">ETcash</div>
-            {company && <div className="text-xs text-slate-400 truncate">{company.name}</div>}
+            <div className="font-bold text-fg text-sm">ETcash</div>
+            {company && <div className="text-xs text-fg-muted truncate">{company.name}</div>}
           </div>
         )}
-        <button onClick={toggle} className="text-slate-400 hover:text-slate-200 transition-colors ml-auto flex-shrink-0">
+        <button onClick={toggle} className="text-fg-muted hover:text-fg-secondary transition-colors ml-auto flex-shrink-0">
           <Bars3Icon className="w-5 h-5"/>
         </button>
       </div>
